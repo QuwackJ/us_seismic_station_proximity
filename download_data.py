@@ -61,9 +61,72 @@ STATE_POLYGONS_PATH = 'data/tl_2026_us_state/tl_2026_us_state.shp' # state polyg
 NSF_SAGE_URL = 'https://service.earthscope.org/fdsnws/station/1/query' # where to get all seismic station data
 STATIONS_CACHE_PATH = 'data/stations_cache/all_us_stations.csv' # stations are downloaded once and stored here
 
+GEOFABRIK_BASE_URL = 'https://download.geofabrik.de/north-america/us'
+
+US_STATE_SLUGS = {
+    'AL': 'alabama', 'AK': 'alaska', 'AZ': 'arizona', 'AR': 'arkansas',
+    'CO': 'colorado', 'CT': 'connecticut', 'DE': 'delaware', 'DC': 'district-of-columbia',
+    'FL': 'florida', 'GA': 'georgia', 'HI': 'hawaii', 'ID': 'idaho',
+    'IL': 'illinois', 'IN': 'indiana', 'IA': 'iowa', 'KS': 'kansas',
+    'KY': 'kentucky', 'LA': 'louisiana', 'ME': 'maine', 'MD': 'maryland',
+    'MA': 'massachusetts', 'MI': 'michigan', 'MN': 'minnesota', 'MS': 'mississippi',
+    'MO': 'missouri', 'MT': 'montana', 'NE': 'nebraska', 'NV': 'nevada',
+    'NH': 'new-hampshire', 'NJ': 'new-jersey', 'NM': 'new-mexico', 'NY': 'new-york',
+    'NC': 'north-carolina', 'ND': 'north-dakota', 'OH': 'ohio', 'OK': 'oklahoma',
+    'OR': 'oregon', 'PA': 'pennsylvania', 'PR': 'puerto-rico', 'RI': 'rhode-island',
+    'SC': 'south-carolina', 'SD': 'south-dakota', 'TN': 'tennessee', 'TX': 'texas',
+    'UT': 'utah', 'VT': 'vermont', 'VA': 'virginia', 'WA': 'washington',
+    'WV': 'west-virginia', 'WI': 'wisconsin', 'WY': 'wyoming', 'VI': 'virgin-islands',
+    # california is split into norcal/socal on geofabrik -- handled separately, not in this dict
+}
+
+US_STATE_NAMES = {
+    abbr: slug.replace('-', ' ').title() for abbr, slug in US_STATE_SLUGS.items()
+}
+
+US_STATE_NAMES['CA'] = 'California'
+
 CONNECT_TIMEOUT = 15 # seconds to establish a connection
 READ_TIMEOUT = 120 # seconds allowed between successive chunks (not total transfer time)
 MAX_ATTEMPTS = 3 # retries for large/flaky downloads (ex: Alaska, California)
+
+
+def geofabrik_urls_for_state(abbr):
+    abbr = abbr.strip().upper()
+
+    if abbr == 'CA':
+        return [f'{GEOFABRIK_BASE_URL}/california/norcal-latest-free.gpkg.zip',
+                f'{GEOFABRIK_BASE_URL}/california/socal-latest-free.gpkg.zip']
+
+    slug = US_STATE_SLUGS.get(abbr)
+
+    if not slug:
+        return None
+
+    return [f'{GEOFABRIK_BASE_URL}/{slug}-latest-free.gpkg.zip']
+
+
+def resolve_gpkg_urls(abbr, explicit_url=None, interactive=True):
+    if explicit_url:
+        return [url.strip() for url in explicit_url.split(',') if url.strip()]
+
+    guessed = geofabrik_urls_for_state(abbr)
+
+    if not interactive:
+        return guessed or []
+
+    if guessed:
+        print('Found standard Geofabrik download URL(s) for this state:')
+
+        for u in guessed:
+            print(f'  {u}')
+
+        use_guess = input('Use these? [y/n]: ').strip().lower()
+        if use_guess in ('', 'y', 'yes'):
+            return guessed
+
+    raw = input('Enter URL(s) to the OSM Geofabrik .gpkg for this state (comma-separated if multiple): ').strip()
+    return [url.strip() for url in raw.split(',') if url.strip()]
 
 
 # Setting up regions_config.json
@@ -102,12 +165,7 @@ def prompt_new_region(abbr, gpkg_url_list=None): # how to save data for a new re
 
     name = input(f'Enter the full region name (e.g., "Arizona"): ').strip().title()
 
-    # if the user provided .gpkgs, split them by commas (if there are multiple); otherwise, ask user to provide .gpkgs
-    if gpkg_url_list:
-        gpkg_urls = [url.strip() for url in gpkg_url_list.split(',')]
-    else:
-        raw = input('Enter URL(s) to the OSM Geofabrik .gpkg for this state (comma-separated if multiple): ').strip()
-        gpkg_urls = [url.strip() for url in raw.split(',')]
+    gpkg_urls = resolve_gpkg_urls(abbr, explicit_url=gpkg_url_list)
 
     # provide a crs for the new region (or use default)
     default_crs = guess_target_crs(abbr)
@@ -329,11 +387,10 @@ def download_configured_gpkgs(regions, force=False):
 
 
 # Adding a new gpkg OR replacing gpkg(s) for an existing state in regions_config.json
-def add_new_gpkg(abbr, url_list):
+def add_new_gpkg(abbr, url_list=None):
     abbr = abbr.strip().upper()
 
-    # cleans the list of URLs
-    urls = [url.strip() for url in url_list.split(',') if url.strip()]
+    urls = resolve_gpkg_urls(abbr, explicit_url=url_list, interactive=False)
 
     # if no valid URLs are provided, raise an error
     if not urls:
@@ -372,7 +429,7 @@ def parse_args():
 
     parser.add_argument('--new', action='store_true', help='Add a new OSM .gpkg by providing a download URL')
     parser.add_argument('--state', type=str, default=None, help='State abbreviation (ex: CA) for adding a new state; used with --new')
-    parser.add_argument('--url', type=str, default=None, help='Comma-separated URL(s) to .gpkg file(s) for the new state; used with --new')
+    parser.add_argument('--url', type=str, default=None, help='Optional comma-separated URL(s) to .gpkg file(s) for the new state; if omitted, standard Geofabrik URLs will be used; used with --new')
     parser.add_argument('--force', action='store_true', help='Force re-download of state polygons, stations, and state OSM gpkgs')
     parser.add_argument('--list', action='store_true', help='List all configured states in regions_config.json and exit')
 
@@ -390,8 +447,8 @@ def main():
 
     if args.new:
         abbr = args.state or input('State abbreviation for this gpkg (ex: NV): ').strip().upper()
-        url = args.url or input('Comma-separated URL(s) to download the OSM .gpkg file(s): ').strip()
-        add_new_gpkg(abbr, url)
+        urls = resolve_gpkg_urls(abbr, explicit_url=args.url)
+        add_new_gpkg(abbr, ', '.join(urls))
         return
 
     # standard run
