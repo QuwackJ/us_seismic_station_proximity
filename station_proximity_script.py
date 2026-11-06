@@ -27,9 +27,6 @@ logger = logging.getLogger(__name__)
 # Constants
 STATE_ABBR_FIELD = 'STUSPS'
 
-STATIONS_CACHE_PATH = 'data/stations_cache/all_us_stations.csv' # stations are downloaded once and stored here
-NSF_SAGE_URL = 'https://service.earthscope.org/fdsnws/station/1/query' # where to get all seismic station data
-
 RECENT_END_CUTOFF = pd.Timestamp('2023-01-01') # stations that ended after this date count as recently active
 RECENT_START_CUTOFF = pd.Timestamp('2020-01-01') # stations that started after this date count as recently active
 MIN_RECENT_ACTIVE_DAYS = 365.25 * 3 # recently active stations must have run for at least 3 years
@@ -209,7 +206,9 @@ def process_region(config, all_stations_states): # actually doing the analysis f
     final = final.merge(waterway_join, on='id', how='left')
     final = final.drop(columns=['geometry'])
 
+    # save data to specified folder with specified filename
     out_path = Path(config['output_csv'])
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     final.to_csv(out_path, index=False)
     logger.info('Wrote output to %s', out_path)
 

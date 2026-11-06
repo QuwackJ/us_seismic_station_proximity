@@ -180,6 +180,9 @@ def download_stations(cache_path, force=False): # get every seismic station in t
     # normalize column names to lowercase and strip whitespace
     all_stations.columns = [col.strip().lower() for col in all_stations.columns]
 
+    # make data folder to store
+    path.parent.mkdir(parents=True, exist_ok=True)
+
     all_stations.to_csv(path, index=False)
 
     logger.info('Saved %d stations (nationwide) to %s', len(all_stations), path)
