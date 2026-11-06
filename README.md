@@ -21,7 +21,8 @@ Next, run `pip install -r requirements.txt`. This allows you to install the requ
 Finally, you can run the following commands to download the data:
 * `python download_data.py --force`: downloads all data on US seismic stations, state boundaries, and OSM GeoPackages for Washington, Oregon, California, and Alaska. This process takes a lot of time due to the large file sizes
 * `python download_data.py --list`: list all of the states that have been configured for analysis
-* `python download_data.py --new --state <abbreviation> --url <comma-separated list if multiple>`: add a new state to the list of configured states and its data. Please provide the state's abbreviation (ex: NV for Nevada) and the URL for the state's OSM GeoPackage. You can use [this link](https://download.geofabrik.de/north-america/us.html) to find a state and provide its .gpkg.zip download link. If a state is split into parts (ex: California is split into Northern and Southern California), please provide the URLs as a comma-separated list *without* spaces.
+* `python download_data.py --new --state <abbreviation>`: add a new state to the list of configured states and its data. Please provide the state's abbreviation (ex: NV for Nevada) 
+    * ` --url <comma-separated list if multiple>`: *optional* to provide your own URL(s) for the state's OSM GeoPackage. You can use [this link](https://download.geofabrik.de/north-america/us.html) to find a state and provide its .gpkg.zip download link. If a state is split into parts (ex: California is split into Northern and Southern California), please provide the URLs as a comma-separated list *without* spaces.
 
 All downloaded data will be stored in a folder called `data`.
 
