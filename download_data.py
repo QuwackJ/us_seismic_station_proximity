@@ -304,7 +304,7 @@ def _stream_to_path(url, out_path):
 
                 if r.status_code == 206:
                     content_range = r.headers.get('content-range', '')
-                    total = int(content_range.split('/')[-1] if '/' in content_range else None)
+                    total = int(content_range.split('/')[-1]) if '/' in content_range else None
                 else:
                     cl = r.headers.get('content-length')
                     total = int(cl) if cl else None
@@ -317,7 +317,7 @@ def _stream_to_path(url, out_path):
                 # written = 0
 
                 # write the downloaded chunks to the output file
-                with open(out_path, mode) as f:
+                with open(part_path, mode) as f:
                     for chunk in r.iter_content(chunk_size=1 << 20):
                         if chunk:
                             f.write(chunk)
@@ -333,7 +333,7 @@ def _stream_to_path(url, out_path):
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
-            urllib3.exceptions.ChunkedEncodingError,
+            requests.exceptions.ChunkedEncodingError,
             urllib3.exceptions.ProtocolError
         ) as e: # catch connection errors and timeouts, log them, and retry if possible
             last_err = e
