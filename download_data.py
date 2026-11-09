@@ -10,6 +10,7 @@ import logging # gives messages to track progress and explain why something fail
 import shutil
 import time
 import zipfile
+import urllib3 # to handle errors due to flaky connection
 from pathlib import Path # how to represent file locations for Mac and Windows
 from urllib.parse import urlparse
 import requests
@@ -278,22 +279,45 @@ def download_state_polygons(shp_path=STATE_POLYGONS_PATH, url=TIGER_STATE_ZIP_UR
 
 # How to download really large files
 def _stream_to_path(url, out_path):
+    out_path = Path(out_path)
+    part_path = out_path.with_suffix(out_path.suffix + '.part')
     last_err = None
 
     # retry loop that runs 3 times and logs each error
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
+            resume_from = part_path.stat().st_size if part_path.exists() else 0
+            headers = {'Range': f'bytes={resume_from}-'} if resume_from else {}
+
             # open the HTTP request but don't download the whole response immediately; pull data incrementally
-            with requests.get(url, stream=True, timeout=(CONNECT_TIMEOUT, READ_TIMEOUT)) as r:
+            with requests.get(url, stream=True, headers=headers,timeout=(CONNECT_TIMEOUT, READ_TIMEOUT)) as r:
+                if resume_from and r.status_code == 416:
+                    break
+
+                if resume_from and r.status_code != 206:
+                    logger.warning('Server does not support resuming download for %s -- restarting download', url)
+                    resume_from = 0
+                    part_path.unlink(missing_ok=True)
+
                 # report any error that happens
                 r.raise_for_status()
 
+                if r.status_code == 206:
+                    content_range = r.headers.get('content-range', '')
+                    total = int(content_range.split('/')[-1] if '/' in content_range else None)
+                else:
+                    cl = r.headers.get('content-length')
+                    total = int(cl) if cl else None
+
+                mode = 'ab' if resume_from else 'wb'
+                written = resume_from
+
                 # get the total size of the file from the response headers
-                total = int(r.headers.get('content-length', 0))
-                written = 0
+                # total = int(r.headers.get('content-length', 0))
+                # written = 0
 
                 # write the downloaded chunks to the output file
-                with open(out_path, 'wb') as f:
+                with open(out_path, mode) as f:
                     for chunk in r.iter_content(chunk_size=1 << 20):
                         if chunk:
                             f.write(chunk)
@@ -304,16 +328,28 @@ def _stream_to_path(url, out_path):
                     raise requests.exceptions.ConnectionError(f'Incomplete download: got {written} of {total} bytes')
 
             # if the download is successful, return from the function
-            return
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e: # catch connection errors and timeouts, log them, and retry if possible
+            # return
+            break
+        except (
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            urllib3.exceptions.ChunkedEncodingError,
+            urllib3.exceptions.ProtocolError
+        ) as e: # catch connection errors and timeouts, log them, and retry if possible
             last_err = e
-            logger.warning('Attempt %d/%d failed for %s: %s', attempt, MAX_ATTEMPTS, url, e)
+            have = part_path.stat().st_size if part_path.exists() else 0
+            logger.warning('Attempt %d/%d failed for %s: %s (%d bytes kept, will resume)', attempt, MAX_ATTEMPTS, url, e, have)
 
             if attempt < MAX_ATTEMPTS:
                 time.sleep(5 * attempt)
 
+            continue
+
     # if all attempts fail, raise the last error encountered
-    raise last_err
+    else:
+        raise last_err
+
+    part_path.rename(out_path)
 
 
 # General function for downloading a file
