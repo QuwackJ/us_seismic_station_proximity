@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 # Constants
 STATE_ABBR_FIELD = 'STUSPS'
 
-# RECENT_END_CUTOFF = pd.Timestamp('2023-01-01') # stations that ended after this date count as recently active
 RECENT_START_CUTOFF = pd.Timestamp('2020-01-01') # stations that started after this date count as recently active
 MIN_RECENT_ACTIVE_DAYS = 365.25 * 3 # recently active stations must have run for at least 3 years
 
@@ -104,11 +103,6 @@ def filter_active_stations(stations): # only keep stations that are currently ac
     no_end_date = stations['endtime'].isna() | (stations['endtime'].astype(str).str.strip() == '')
 
     still_active = (end.notna() & (end > today)) | (end_year > current_year) | no_end_date
-
-    # duration_days = (end - start).dt.days
-
-    # check if the station ended in the recent past (within the defined cutoff period)
-    # recently_active = (end < today) & (end > RECENT_END_CUTOFF) & (start > RECENT_START_CUTOFF) & (duration_days >= MIN_RECENT_ACTIVE_DAYS)
 
     alive_start = start.clip(lower=RECENT_START_CUTOFF)
     time_alive_after_2020 = (end - alive_start).dt.days / 365.25

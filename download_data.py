@@ -312,10 +312,6 @@ def _stream_to_path(url, out_path):
                 mode = 'ab' if resume_from else 'wb'
                 written = resume_from
 
-                # get the total size of the file from the response headers
-                # total = int(r.headers.get('content-length', 0))
-                # written = 0
-
                 # write the downloaded chunks to the output file
                 with open(part_path, mode) as f:
                     for chunk in r.iter_content(chunk_size=1 << 20):
@@ -326,9 +322,6 @@ def _stream_to_path(url, out_path):
                 # if the download is incomplete, raise an error
                 if total and written < total:
                     raise requests.exceptions.ConnectionError(f'Incomplete download: got {written} of {total} bytes')
-
-            # if the download is successful, return from the function
-            # return
             break
         except (
             requests.exceptions.ConnectionError,
