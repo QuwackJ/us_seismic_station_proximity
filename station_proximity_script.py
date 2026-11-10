@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # Constants
 STATE_ABBR_FIELD = 'STUSPS'
 
-RECENT_END_CUTOFF = pd.Timestamp('2023-01-01') # stations that ended after this date count as recently active
+# RECENT_END_CUTOFF = pd.Timestamp('2023-01-01') # stations that ended after this date count as recently active
 RECENT_START_CUTOFF = pd.Timestamp('2020-01-01') # stations that started after this date count as recently active
 MIN_RECENT_ACTIVE_DAYS = 365.25 * 3 # recently active stations must have run for at least 3 years
 
@@ -93,7 +93,6 @@ def filter_active_stations(stations): # only keep stations that are currently ac
     # NSF SAGE uses years far in the future that pandas can't process to mean that a station is still active; get the year as raw text before parsing as date
     raw_end = stations['endtime'].astype(str)
     end_year = pd.to_numeric(raw_end.str.extract(r'(\d{4})')[0], errors='coerce')
-
     current_year = pd.Timestamp.now().year
     
     # normal datetime parsing for start/end that are within panda's range
@@ -103,15 +102,20 @@ def filter_active_stations(stations): # only keep stations that are currently ac
 
     # check if end year is after current year OR if there is no end date (NSF SAGE leaves endtime blank to mean that the station is active)
     no_end_date = stations['endtime'].isna() | (stations['endtime'].astype(str).str.strip() == '')
-    still_active = (end_year > current_year) | no_end_date
 
-    duration_days = (end - start).dt.days
+    still_active = (end.notna() & (end > today)) | (end_year > current_year) | no_end_date
+
+    # duration_days = (end - start).dt.days
 
     # check if the station ended in the recent past (within the defined cutoff period)
-    recently_active = (end < today) & (end > RECENT_END_CUTOFF) & (start > RECENT_START_CUTOFF) & (duration_days >= MIN_RECENT_ACTIVE_DAYS)
+    # recently_active = (end < today) & (end > RECENT_END_CUTOFF) & (start > RECENT_START_CUTOFF) & (duration_days >= MIN_RECENT_ACTIVE_DAYS)
+
+    alive_start = start.clip(lower=RECENT_START_CUTOFF)
+    time_alive_after_2020 = (end - alive_start).dt.days / 365.25
+    long_enough_since_2020 = time_alive_after_2020 >= MIN_RECENT_ACTIVE_DAYS
 
     # allows stations that are either still active or recently active
-    keep = still_active | recently_active
+    keep = still_active | long_enough_since_2020
 
     kept = stations[keep].copy()
 
