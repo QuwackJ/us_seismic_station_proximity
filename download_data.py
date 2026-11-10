@@ -3,18 +3,18 @@
 
 # Imports
 import argparse # how to use the script in the command line
-import io
-from io import StringIO
-import json
+import io # used to read zipfiles without writing to disk first
+from io import StringIO # used to read text data as if it were a file
+import json # reads/writes regions_config.json
 import logging # gives messages to track progress and explain why something failed
-import shutil
-import time
-import zipfile
+import shutil # streams extracted .gpkg out of zip and into destination file without writing to disk first
+import time # used to add delays between requests to avoid rate limiting
+import zipfile # used to extract .gpkg files from downloaded zip archives
 import urllib3 # to handle errors due to flaky connection
 from pathlib import Path # how to represent file locations for Mac and Windows
-from urllib.parse import urlparse
-import requests
-import pandas as pd
+from urllib.parse import urlparse # check if URL ends with .zip
+import requests # used to make HTTP requests to download data
+import pandas as pd # parse and write station CSV data
 
 
 # Set up logger
@@ -62,9 +62,9 @@ STATE_POLYGONS_PATH = 'data/tl_2026_us_state/tl_2026_us_state.shp' # state polyg
 NSF_SAGE_URL = 'https://service.earthscope.org/fdsnws/station/1/query' # where to get all seismic station data
 STATIONS_CACHE_PATH = 'data/stations_cache/all_us_stations.csv' # stations are downloaded once and stored here
 
-GEOFABRIK_BASE_URL = 'https://download.geofabrik.de/north-america/us'
+GEOFABRIK_BASE_URL = 'https://download.geofabrik.de/north-america/us' # common URL prefix shared by all states' download pages
 
-US_STATE_SLUGS = {
+US_STATE_SLUGS = { # mapping of state abbreviations to their corresponding Geofabrik slugs
     'AL': 'alabama', 'AK': 'alaska', 'AZ': 'arizona', 'AR': 'arkansas',
     'CO': 'colorado', 'CT': 'connecticut', 'DE': 'delaware', 'DC': 'district-of-columbia',
     'FL': 'florida', 'GA': 'georgia', 'HI': 'hawaii', 'ID': 'idaho',
@@ -81,7 +81,7 @@ US_STATE_SLUGS = {
     # california is split into norcal/socal on geofabrik -- handled separately, not in this dict
 }
 
-US_STATE_NAMES = {
+US_STATE_NAMES = { # mapping of state abbreviations to their corresponding full names
     abbr: slug.replace('-', ' ').title() for abbr, slug in US_STATE_SLUGS.items()
 }
 
@@ -92,9 +92,11 @@ READ_TIMEOUT = 120 # seconds allowed between successive chunks (not total transf
 MAX_ATTEMPTS = 3 # retries for large/flaky downloads (ex: Alaska, California)
 
 
+# Given a state abbreviation, return the list of Geofabrik download URL(s)
 def geofabrik_urls_for_state(abbr):
     abbr = abbr.strip().upper()
 
+    # special case for California, which is split into norcal and socal on Geofabrik
     if abbr == 'CA':
         return [f'{GEOFABRIK_BASE_URL}/california/norcal-latest-free.gpkg.zip',
                 f'{GEOFABRIK_BASE_URL}/california/socal-latest-free.gpkg.zip']
@@ -107,6 +109,7 @@ def geofabrik_urls_for_state(abbr):
     return [f'{GEOFABRIK_BASE_URL}/{slug}-latest-free.gpkg.zip']
 
 
+# Figure out whether to use guessed URL or user-provided URL for downloading the .gpkg file
 def resolve_gpkg_urls(abbr, explicit_url=None, interactive=True):
     if explicit_url:
         return [url.strip() for url in explicit_url.split(',') if url.strip()]
@@ -153,12 +156,13 @@ def save_region_config(path, regions): # write the current configuration to regi
 def guess_target_crs(abbr): # provide a reasonable CRS for a given state; Alaska has its own projection
     return 'EPSG:3338' if abbr == 'AK' else 'EPSG:5070'
 
-def gpkg_local_paths(name, urls):
+def gpkg_local_paths(name, urls): # build local file path where downloaded .gpkg should be saved based on region name
     base = name.lower().replace(' ', '_')
 
     if len(urls) <= 1:
         return [f'data/{base}.gpkg']
 
+    # if there are multiple URLs, append an index to the local file path to avoid overwriting
     return [f'data/{base}_{i + 1}.gpkg' for i in range(len(urls))]
 
 def prompt_new_region(abbr, gpkg_url_list=None): # how to save data for a new region that user wants to analyze
@@ -279,21 +283,24 @@ def download_state_polygons(shp_path=STATE_POLYGONS_PATH, url=TIGER_STATE_ZIP_UR
 
 # How to download really large files
 def _stream_to_path(url, out_path):
-    out_path = Path(out_path)
-    part_path = out_path.with_suffix(out_path.suffix + '.part')
+    out_path = Path(out_path) # real destination
+    part_path = out_path.with_suffix(out_path.suffix + '.part') # temporary file used during download
     last_err = None
 
     # retry loop that runs 3 times and logs each error
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
+            # check how many bytes of .part already exist and send HTTP Range header asking the server to continue from that byte offset
             resume_from = part_path.stat().st_size if part_path.exists() else 0
             headers = {'Range': f'bytes={resume_from}-'} if resume_from else {}
 
             # open the HTTP request but don't download the whole response immediately; pull data incrementally
             with requests.get(url, stream=True, headers=headers,timeout=(CONNECT_TIMEOUT, READ_TIMEOUT)) as r:
+                # if we are resuming and the server returns 416 (Range Not Satisfiable -- nothing left to resume), break the loop
                 if resume_from and r.status_code == 416:
                     break
 
+                # if we are resuming but the server does not return 206 (Partial Content), restart the download from scratch
                 if resume_from and r.status_code != 206:
                     logger.warning('Server does not support resuming download for %s -- restarting download', url)
                     resume_from = 0
@@ -302,14 +309,17 @@ def _stream_to_path(url, out_path):
                 # report any error that happens
                 r.raise_for_status()
 
+                # if the server returns 206 (Partial Content), send the remaining bytes
                 if r.status_code == 206:
                     content_range = r.headers.get('content-range', '')
                     total = int(content_range.split('/')[-1]) if '/' in content_range else None
+                # if the server doesn't return 206, get the total content length from the content-length header
                 else:
                     cl = r.headers.get('content-length')
                     total = int(cl) if cl else None
 
-                mode = 'ab' if resume_from else 'wb'
+                # determine the file open mode based on whether we are resuming or starting fresh
+                mode = 'ab' if resume_from else 'wb' # ab is append binary, wb is write binary
                 written = resume_from
 
                 # write the downloaded chunks to the output file

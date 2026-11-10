@@ -102,8 +102,10 @@ def filter_active_stations(stations): # only keep stations that are currently ac
     # check if end year is after current year OR if there is no end date (NSF SAGE leaves endtime blank to mean that the station is active)
     no_end_date = stations['endtime'].isna() | (stations['endtime'].astype(str).str.strip() == '')
 
+    # a station is still active if it has an end date in the future, an end year in the future (ex: 2599 or 3000), or no end date at all
     still_active = (end.notna() & (end > today)) | (end_year > current_year) | no_end_date
 
+    # also including stations that have been active for 3+ years since the recent start cutoff (1/1/2020)
     alive_start = start.clip(lower=RECENT_START_CUTOFF)
     time_alive_after_2020 = (end - alive_start).dt.days / 365.25
     long_enough_since_2020 = time_alive_after_2020 >= MIN_RECENT_ACTIVE_DAYS
