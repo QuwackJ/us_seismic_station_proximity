@@ -36,35 +36,35 @@ To run the analysis, use `python station_proximity_script.py --state <abbreviati
 
 The output CSVs track the distance from a station to its nearest road, railway, and waterway as well as the type (denoted with `_fclass`). Here is [what each type means according to OSM Geofabrik](https://download.geofabrik.de/osm-data-in-gis-formats-free.pdf):
 * Roads
-   * `motorway`:
-   * `trunk`:
-   * `primary`:
-   * `secondary`:
-   * `tertiary`:
-   * `unclassified`:
-   * `residential`:
-   * `living_street`:
-   * `pedestrian`:
-   * `busway`:
-   * `_link`:
-   * `service`:
-   * `track`:
-   * `unknown`:
+   * `motorway`: motorway/freeway
+   * `trunk`: important roads, typically divided
+   * `primary`: primary roads, typically national
+   * `secondary`: secondary roads, typically regional
+   * `tertiary`: tertiary roads, typically local
+   * `unclassified`: smaller local roads
+   * `residential`: roads in residential areas
+   * `living_street`: streets where pedestrians have priority
+   * `pedestrian`: pedestrian only streets
+   * `busway`: dedicated roads for buses, usually closed for any mode of transport except public transport
+   * `_link`: roads that connect from one road to another of the same/lower category
+   * `service`: service roads for access to buildings, parking lots, etc.
+   * `track`: for agricultural use, in forests, etc.; can be gravel or dirt roads
+   * `unknown`: unknown type of road or path
 * Railways
-   * `rail`:
-   * `light_rail`:
-   * `subway`:
-   * `tram`:
-   * `monorail`:
-   * `narrow_gauge`:
-   * `miniature`:
-   * `funicular`:
-   * `rack`:
+   * `rail`: regular railway tracks
+   * `light_rail`: light railway tracks, often commuter railways
+   * `subway`: underground railway tracks
+   * `tram`: tram tracks (may be incident with roads)
+   * `monorail`: monorail track
+   * `narrow_gauge`: narrow gauge railway track
+   * `miniature`: miniature railway track
+   * `funicular`: cable railway usually on a steep incline
+   * `rack`: rack railway
 * Waterways
-   * `river`:
-   * `stream`:
-   * `canal`:
-   * `drain`:
+   * `river`: a large river
+   * `stream`: smaller river or stream
+   * `canal`: artificial waterway
+   * `drain`: small drainage ditch or similar structure
 
 ## AI Disclosure
 
