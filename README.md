@@ -26,6 +26,10 @@ Finally, you can run the following commands to download the data:
 
 All downloaded data will be stored in a folder called `data`.
 
+### Understanding the OSM Data
+
+To get a better understanding of what each type of road, railway, and waterway means in the real world, you can use [OSM Geofabrik's PDF guide](https://download.geofabrik.de/osm-data-in-gis-formats-free.pdf). Check the pages for Line Features (13 - 15) for specifications on roads, railways, and waterways.
+
 ### Seismic Station Analysis
 
 Now that all of the data has been downloaded, you can start running analyses on seismic stations in the state of your choice.
