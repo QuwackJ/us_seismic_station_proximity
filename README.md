@@ -26,10 +26,6 @@ Finally, you can run the following commands to download the data:
 
 All downloaded data will be stored in a folder called `data`.
 
-### Understanding the OSM Data
-
-To get a better understanding of what each type of road, railway, and waterway means in the real world, you can use [OSM Geofabrik's PDF guide](https://download.geofabrik.de/osm-data-in-gis-formats-free.pdf). Check the pages for Line Features (13 - 15) for specifications on roads, railways, and waterways.
-
 ### Seismic Station Analysis
 
 Now that all of the data has been downloaded, you can start running analyses on seismic stations in the state of your choice.
@@ -37,6 +33,10 @@ Now that all of the data has been downloaded, you can start running analyses on 
 To run the analysis, use `python station_proximity_script.py --state <abbreviation>`. The resulting CSVs will be stored in a folder called `output`.
 
 To see which states can be analyzed, use `python station_proximity_script.py --list`.
+
+### Understanding Roads, Railways, and Waterways
+
+To get a better understanding of what each type of road, railway, and waterway means in the real world, you can use [OSM Geofabrik's PDF guide](https://download.geofabrik.de/osm-data-in-gis-formats-free.pdf). Check the pages on Line Features (13 - 15).
 
 ## AI Disclosure
 
