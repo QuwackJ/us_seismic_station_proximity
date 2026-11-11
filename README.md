@@ -34,7 +34,7 @@ To see which states can be analyzed, use `python station_proximity_script.py --l
 
 To run the analysis, use `python station_proximity_script.py --state <abbreviation>`. The resulting CSVs will be stored in a folder called `output`.
 
-The output CSVs track the distance from a station to its nearest road, railway, and waterway as well as the type (denoted with `_fclass`). Here is [what each type means according to OSM Geofabrik](https://download.geofabrik.de/osm-data-in-gis-formats-free.pdf):
+The output CSVs track the distance from a station to its nearest road, railway, and waterway as well as the type (columns are denoted with `_fclass`). Here is [what each type means according to OSM Geofabrik](https://download.geofabrik.de/osm-data-in-gis-formats-free.pdf):
 * Roads
    * `motorway`: motorway/freeway
    * `trunk`: important roads, typically divided
