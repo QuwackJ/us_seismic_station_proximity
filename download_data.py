@@ -56,8 +56,8 @@ DEFAULT_REGIONS = { # default settings for regions_config.json
     }
 }
 
-TIGER_STATE_ZIP_URL = 'https://www2.census.gov/geo/tiger/TIGER2026/STATE/tl_2026_us_state.zip' # where to get state polygons (TIGER)
-STATE_POLYGONS_PATH = 'data/tl_2026_us_state/tl_2026_us_state.shp' # state polygons are downloaded once and stored here
+TIGER_STATE_ZIP_URL = 'https://www2.census.gov/geo/tiger/GENZ2022/shp/cb_2022_us_state_500k.zip' # where to get state polygons (TIGER)
+STATE_POLYGONS_PATH = 'data/cb_2022_us_state_500k/cb_2022_us_state_500k.shp' # state polygons are downloaded once and stored here
 
 NSF_SAGE_URL = 'https://service.earthscope.org/fdsnws/station/1/query' # where to get all seismic station data
 STATIONS_CACHE_PATH = 'data/stations_cache/all_us_stations.csv' # stations are downloaded once and stored here
