@@ -10,7 +10,7 @@ This repo contains two files, `download_data.py` and `station_proximity_script.p
 
 ### Downloading Data
 
-This repo utilizes data from [NSF SAGE](https://www.iris.edu/hq/sage), [US Census TIGER](https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html), and [OSM Geofabrik](https://download.geofabrik.de/north-america/us.html). Since many of the required files are too large to be hosted on GitHub, you will have to use `download_data.py` to acquire the data on your local machine.
+This repo utilizes data from [NSF SAGE](https://www.iris.edu/hq/sage), [US Census TIGER](https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.2022.html#list-tab-1883739534), and [OSM Geofabrik](https://download.geofabrik.de/north-america/us.html). Since many of the required files are too large to be hosted on GitHub, you will have to use `download_data.py` to acquire the data on your local machine.
 
 In your command line, run `git clone https://github.com/QuwackJ/us_seismic_station_proximity.git` to make a copy of this repo on your computer.
 
